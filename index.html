@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSM Account Actions — Data Cloud & Agentforce</title>
+<style>
+  :root {
+    --green: #16a34a; --green-light: #dcfce7; --green-border: #86efac;
+    --amber: #d97706; --amber-light: #fef3c7; --amber-border: #fcd34d;
+    --red: #dc2626; --red-light: #fee2e2; --red-border: #fca5a5;
+    --gray: #6b7280; --gray-light: #f3f4f6; --gray-border: #d1d5db;
+    --blue: #2563eb; --blue-light: #eff6ff; --blue-border: #93c5fd;
+    --navy: #0f172a; --ink: #1e293b; --muted: #64748b;
+    --card-radius: 10px; --shadow: 0 1px 4px rgba(0,0,0,.10), 0 4px 16px rgba(0,0,0,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; color: var(--ink); font-size: 14px; }
+
+  /* ── HERO ── */
+  .hero { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e40af 100%); color: #fff; padding: 32px 40px 28px; }
+  .hero h1 { font-size: 24px; font-weight: 700; letter-spacing: -.3px; }
+  .hero .sub { color: #93c5fd; font-size: 13px; margin-top: 4px; }
+  .hero .meta-row { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; }
+  .meta-pill { background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); border-radius: 20px; padding: 6px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .meta-pill .val { font-weight: 700; font-size: 15px; }
+  .meta-pill.green { background: rgba(22,163,74,.25); border-color: rgba(134,239,172,.4); }
+  .meta-pill.amber { background: rgba(217,119,6,.25); border-color: rgba(252,211,77,.4); }
+  .meta-pill.red   { background: rgba(220,38,38,.25);  border-color: rgba(252,165,165,.4); }
+
+  /* ── REGION SECTION ── */
+  .region { padding: 28px 40px 8px; }
+  .region-header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+  .region-flag { font-size: 22px; }
+  .region-title { font-size: 19px; font-weight: 700; color: var(--navy); }
+  .region-count { background: var(--navy); color: #fff; border-radius: 12px; padding: 2px 10px; font-size: 12px; font-weight: 600; }
+  .region-divider { flex: 1; height: 1px; background: #e2e8f0; }
+
+  /* ── CARD GRID ── */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; padding: 0 40px 32px; }
+
+  /* ── ACCOUNT CARD ── */
+  .card { background: #fff; border-radius: var(--card-radius); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; border-top: 4px solid var(--gray); }
+  .card.green  { border-top-color: var(--green); }
+  .card.amber  { border-top-color: var(--amber); }
+  .card.red    { border-top-color: var(--red); }
+  .card.blue   { border-top-color: var(--blue); }
+
+  .card-head { padding: 14px 16px 10px; border-bottom: 1px solid #f1f5f9; }
+  .card-title { font-size: 15px; font-weight: 700; color: var(--navy); line-height: 1.3; }
+  .card-meta { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; align-items: center; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
+  .tag-csm  { background: #e0f2fe; color: #0369a1; }
+  .tag-seg  { background: #f0fdf4; color: #166534; }
+  .tag-country { background: #faf5ff; color: #7e22ce; }
+
+  .card-metrics { display: flex; gap: 0; border-bottom: 1px solid #f1f5f9; }
+  .metric { flex: 1; padding: 10px 14px; text-align: center; border-right: 1px solid #f1f5f9; }
+  .metric:last-child { border-right: none; }
+  .metric-label { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  .metric-val { font-size: 16px; font-weight: 700; color: var(--navy); margin-top: 2px; }
+  .metric-val.small { font-size: 13px; }
+
+  .status-row { display: flex; gap: 8px; padding: 10px 14px; border-bottom: 1px solid #f1f5f9; flex-wrap: wrap; }
+  .status-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 5px; }
+  .badge-green { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+  .badge-red   { background: var(--red-light);   color: var(--red);   border: 1px solid var(--red-border); }
+  .badge-gray  { background: var(--gray-light);  color: var(--gray);  border: 1px solid var(--gray-border); }
+  .badge-blue  { background: var(--blue-light);  color: var(--blue);  border: 1px solid var(--blue-border); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot-green { background: var(--green); }
+  .dot-amber { background: var(--amber); }
+  .dot-red   { background: var(--red); }
+  .dot-gray  { background: var(--gray); }
+
+  .card-body { padding: 12px 14px; flex: 1; }
+  .update-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin-bottom: 6px; }
+  .update-text { font-size: 12.5px; color: #334155; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+  .update-text.collapsed { max-height: 80px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%); mask-image: linear-gradient(to bottom, black 50%, transparent 100%); }
+  .toggle-btn { background: none; border: none; color: var(--blue); font-size: 12px; font-weight: 600; cursor: pointer; padding: 6px 0 2px; display: block; }
+  .toggle-btn:hover { text-decoration: underline; }
+
+  .lt-ask { margin: 10px 14px 12px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 6px; padding: 8px 10px; }
+  .lt-ask-label { font-size: 10px; font-weight: 700; color: #c2410c; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 4px; }
+  .lt-ask-text { font-size: 12px; color: #7c2d12; line-height: 1.5; white-space: pre-wrap; }
+
+  .use-case-row { padding: 0 14px 12px; }
+  .use-case-text { font-size: 11.5px; color: var(--muted); font-style: italic; line-height: 1.4; }
+
+  /* ── SUMMARY TABLE ── */
+  .summary-wrap { padding: 0 40px 36px; }
+  .summary-table { width: 100%; border-collapse: collapse; font-size: 12.5px; background: #fff; border-radius: var(--card-radius); box-shadow: var(--shadow); overflow: hidden; }
+  .summary-table thead tr { background: var(--navy); color: #fff; }
+  .summary-table thead th { padding: 10px 12px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
+  .summary-table thead th:first-child { border-radius: 0; }
+  .summary-table tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+  .summary-table tbody tr:last-child { border-bottom: none; }
+  .summary-table tbody tr:hover { background: #f8fafc; }
+  .summary-table td { padding: 9px 12px; vertical-align: middle; line-height: 1.4; }
+  .summary-table td.account-name { font-weight: 600; color: var(--navy); }
+  .rag-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; flex-shrink: 0; }
+  .rag-green { background: var(--green); }
+  .rag-amber { background: var(--amber); }
+  .rag-red   { background: var(--red); }
+  .rag-gray  { background: var(--gray); }
+  .tbl-tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 3px; white-space: nowrap; }
+  .tbl-tag-csm     { background: #e0f2fe; color: #0369a1; }
+  .tbl-tag-seg     { background: #f0fdf4; color: #166534; }
+  .tbl-tag-country { background: #faf5ff; color: #7e22ce; }
+  .tbl-tag-green   { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+  .tbl-tag-amber   { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+  .tbl-tag-red     { background: var(--red-light);   color: var(--red);   border: 1px solid var(--red-border); }
+  .tbl-tag-gray    { background: var(--gray-light);  color: var(--gray);  border: 1px solid var(--gray-border); }
+  .summary-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lt-flag { display: inline-block; font-size: 10px; font-weight: 700; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; padding: 1px 6px; border-radius: 3px; }
+  .summary-table .snippet { max-width: 280px; color: #475569; }
+  .summary-table .snippet-inner { overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+  /* ── FOOTER ── */
+  footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; border-top: 1px solid #e2e8f0; margin-top: 12px; }
+
+  @media (max-width: 600px) {
+    .hero, .region, .card-grid, .summary-wrap { padding-left: 16px; padding-right: 16px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .summary-table { font-size: 11px; }
+    .summary-table .snippet { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>CSM Account Actions — Data Cloud &amp; Agentforce</h1>
+  <div class="sub">India &amp; ASEAN · As of July 2, 2026 · CSM-owned accounts only</div>
+  <div class="meta-row">
+    <div class="meta-pill"><span>India Accounts</span><span class="val">16</span></div>
+    <div class="meta-pill"><span>ASEAN Accounts</span><span class="val">18</span></div>
+    <div class="meta-pill green"><span class="dot dot-green"></span><span>Healthy / Consuming Well</span></div>
+    <div class="meta-pill amber"><span class="dot dot-amber"></span><span>Amber / Early Adoption</span></div>
+    <div class="meta-pill red"><span class="dot dot-red"></span><span>Not Consuming / At Risk</span></div>
+  </div>
+</div>
+
+<!-- ═══════════════════ INDIA SUMMARY ═══════════════════ -->
+<div class="region">
+  <div class="region-header">
+    <span class="region-flag">🇮🇳</span>
+    <span class="region-title">India — Summary</span>
+    <span class="region-count">16 Accounts</span>
+    <div class="region-divider"></div>
+  </div>
+</div>
+<div class="summary-wrap">
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Account</th>
+        <th>CSM</th>
+        <th>Segment</th>
+        <th>AOV</th>
+        <th>CCR $</th>
+        <th>CRR %</th>
+        <th>AF Status</th>
+        <th>DC Status</th>
+        <th>RAG</th>
+        <th>LT Ask?</th>
+        <th>Update Snippet</th>
+      </tr>
+    </thead>
+    <tbody id="india-summary-tbody"></tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════ ASEAN SUMMARY ═══════════════════ -->
+<div class="region">
+  <div class="region-header">
+    <span class="region-flag">🌏</span>
+    <span class="region-title">ASEAN — Summary</span>
+    <span class="region-count">18 Accounts</span>
+    <div class="region-divider"></div>
+  </div>
+</div>
+<div class="summary-wrap">
+  <table class="summary-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Account</th>
+        <th>CSM</th>
+        <th>Country</th>
+        <th>AOV</th>
+        <th>CCR $</th>
+        <th>CRR %</th>
+        <th>Cohort</th>
+        <th>RAG</th>
+        <th>LT Ask?</th>
+        <th>Update Snippet</th>
+      </tr>
+    </thead>
+    <tbody id="asean-summary-tbody"></tbody>
+  </table>
+</div>
+
+<!-- ═══════════════════ INDIA DETAIL ═══════════════════ -->
+<div class="region">
+  <div class="region-header">
+    <span class="region-flag">🇮🇳</span>
+    <span class="region-title">India — Account Detail</span>
+    <span class="region-count">16 Accounts</span>
+    <div class="region-divider"></div>
+  </div>
+</div>
+
+<div class="card-grid" id="india-grid"></div>
+
+<!-- ═══════════════════ ASEAN DETAIL ═══════════════════ -->
+<div class="region">
+  <div class="region-header">
+    <span class="region-flag">🌏</span>
+    <span class="region-title">ASEAN — Account Detail</span>
+    <span class="region-count">18 Accounts</span>
+    <div class="region-divider"></div>
+  </div>
+</div>
+
+<div class="card-grid" id="asean-grid"></div>
+
+<footer>India: Column Y updates · ASEAN: Column U/V updates · CSM-owned rows only · Excludes Krishna Manoja Jangala & Satyajeet Kuvalekar (India)</footer>
+
+<script>
+// ── RAG helper ──────────────────────────────────────────────────────────────
+function rag(af, dc) {
+  const r = s => s && (s.includes('🔴') || s.toLowerCase().includes('not consuming') || s.toLowerCase().includes('attrition') || s.toLowerCase().includes('at risk'));
+  const g = s => s && (s.includes('🟢') || s.toLowerCase().includes('healthy') || s.toLowerCase().includes('consuming well'));
+  if (r(af) && r(dc)) return 'red';
+  if (r(af) || r(dc)) return 'amber';
+  if (g(af) && g(dc)) return 'green';
+  return 'amber';
+}
+function cohortRag(c) {
+  if (!c) return 'gray';
+  c = c.toLowerCase();
+  if (c.includes('consuming well')) return 'green';
+  if (c.includes('consuming') && !c.includes('under') && !c.includes('not')) return 'green';
+  if (c.includes('under consuming')) return 'amber';
+  if (c.includes('no crr')) return 'gray';
+  if (c.includes('risk')) return 'red';
+  return 'gray';
+}
+function statusClass(s) {
+  if (!s) return 'badge-gray';
+  if (s.includes('🟢')) return 'badge-green';
+  if (s.includes('🟡')) return 'badge-amber';
+  if (s.includes('🔴')) return 'badge-red';
+  return 'badge-gray';
+}
+function dotOf(r) { return r === 'green' ? 'dot-green' : r === 'amber' ? 'dot-amber' : r === 'red' ? 'dot-red' : 'dot-gray'; }
+
+// ── Card builder ─────────────────────────────────────────────────────────────
+let cardIdx = 0;
+function buildCard(o) {
+  const id = 'c' + (cardIdx++);
+  const ragClass = o.rag || 'gray';
+  const dotClass = dotOf(ragClass);
+  const ltHtml = (o.ltAsk && o.ltAsk.trim() && o.ltAsk.trim().toLowerCase() !== 'n/a' && o.ltAsk.trim() !== 'see flex credits line item')
+    ? `<div class="lt-ask"><div class="lt-ask-label">⚡ LT Ask</div><div class="lt-ask-text">${esc(o.ltAsk.trim())}</div></div>` : '';
+  const ucHtml = o.useCases ? `<div class="use-case-row"><div class="update-label">Use Cases</div><div class="use-case-text">${esc(o.useCases)}</div></div>` : '';
+  const statusHtml = o.statuses ? o.statuses.map(s => `<span class="status-badge ${statusClass(s)}">${esc(s)}</span>`).join('') : '';
+  const update = (o.update || '').trim();
+  const long = update.length > 280;
+  return `
+<div class="card ${ragClass}">
+  <div class="card-head">
+    <div class="card-title"><span class="dot ${dotClass}" style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle;"></span>${esc(o.account)}</div>
+    <div class="card-meta">
+      ${o.csm ? `<span class="tag tag-csm">CSM: ${esc(o.csm)}</span>` : ''}
+      ${o.segment ? `<span class="tag tag-seg">${esc(o.segment)}</span>` : ''}
+      ${o.country ? `<span class="tag tag-country">${esc(o.country)}</span>` : ''}
+    </div>
+  </div>
+  <div class="card-metrics">
+    <div class="metric"><div class="metric-label">AOV</div><div class="metric-val small">${esc(o.aov||'—')}</div></div>
+    <div class="metric"><div class="metric-label">CCR</div><div class="metric-val small">${esc(o.ccr||'—')}</div></div>
+    <div class="metric"><div class="metric-label">CRR</div><div class="metric-val small">${esc(o.crr||'—')}</div></div>
+  </div>
+  ${statusHtml ? `<div class="status-row">${statusHtml}</div>` : ''}
+  <div class="card-body">
+    <div class="update-label">Key Update</div>
+    <div class="update-text ${long ? 'collapsed' : ''}" id="${id}-txt">${esc(update)}</div>
+    ${long ? `<button class="toggle-btn" onclick="toggleUpdate('${id}')">Show more ▾</button>` : ''}
+  </div>
+  ${ucHtml}
+  ${ltHtml}
+</div>`;
+}
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toggleUpdate(id) {
+  const el = document.getElementById(id + '-txt');
+  const btn = el.nextElementSibling;
+  if (el.classList.contains('collapsed')) { el.classList.remove('collapsed'); btn.textContent = 'Show less ▴'; }
+  else { el.classList.add('collapsed'); btn.textContent = 'Show more ▾'; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INDIA DATA
+// ═══════════════════════════════════════════════════════════════════════════
+const indiaAccounts = [
+  {
+    account: 'Bajaj Finance Limited',
+    csm: 'Pranav Marathe',
+    segment: 'FINS',
+    aov: '$8.0M (DC: $7.4M | AF: $615K)',
+    ccr: '$450K',
+    crr: 'DC: 64% | AF: 1%',
+    statuses: ['🟡 AF: Early Adoption', '🟡 DC: Consuming'],
+    rag: 'amber',
+    update: `Jul 1 — Agentforce: Flex credit consumption <1% (37Mn of 5.4Bn). Sales Assistive Agent (B2B) live with 12 pilot users. FDE engagement closing Jul 2.
+Next Milestone: Doc AI for SME pilot Jul 3 | Bank Statement Multimodal POC Oct 2026
+Blocker: Excel support in Doc AI delayed. 200+ page support required.
+
+Data Cloud: 25% credits consumed (57Bn of 228Bn). Segmentation (2,000+ segments) & Activation live since Mar 2024.
+Next Milestone: Tableau Segmentation Dashboard Aug 2026 | Data Share to Databricks Sep 2026
+Blocker: Data Share credit model unviable at scale (800 credits/M rows); credit conversion to Flex under discussion. RBAC/PII gaps — RBI audit risk.`,
+    ltAsk: '',
+    useCases: 'D360: Batch Pipeline, Segmentation, Activation, Tableau. AF: Generative AI for Underwriting, Sales Assistive Agent.'
+  },
+  {
+    account: 'TITAN COMPANY LTD',
+    csm: 'Harsh Pandya',
+    segment: 'CMI-ATTH',
+    aov: '$1.56M (DC: $1.49M | AF: $74K)',
+    ccr: '$287K',
+    crr: '81.63%',
+    statuses: ['🟡 AF: Consuming', '🟡 DC: Consuming'],
+    rag: 'amber',
+    update: `Jul 1 — Flex Credits: 3.2M allocated, 21,880 (1%) consumed. Data Services (AELA): 476.2M credits consumed this billing cycle. Storage: 911 GB of 17,360 GB (5%).
+
+Campaign Migration: All Jewelry Ad Hoc campaigns now processing through Data Cloud. Watches migration in progress — deviation analysis underway.
+CIs: 26 CIs created across brands. Tanishq (11/11 campaigns matched) and Mia (2/2 matched). WOT (24 campaigns, 4 in progress), Helios (16 campaigns, 2 in progress).
+
+Blockers: Partner onboarding delays, limited bandwidth, stakeholder sign-off cadence.
+Target: 100% campaign migration to DC by Sep 2026.`,
+    ltAsk: '',
+    useCases: 'FOD from DC, campaign migration from Redshift, 20 Tableau reports, Mobile App personalisation.'
+  },
+  {
+    account: 'Mahindra & Mahindra Ltd.',
+    csm: 'Neeti Raj',
+    segment: 'CMI-ATTH',
+    aov: '$574K (DC)',
+    ccr: '$29.3K',
+    crr: '26.95%',
+    statuses: ['🟢 AF: Not Applicable', '🟡 DC: Early Adoption'],
+    rag: 'amber',
+    update: `AMBER — Post use case workshop, customer committed to sharing AWS SageMaker use cases.
+Priority Pipeline: Propensity to Buy, Lead Scoring, High-Intent Customers. Customer elected Propensity to Buy as starting point.
+
+Key Risk: MSP (Managed Services Partner) built propensity model but refuses to migrate to Data Cloud or share source code. If MSP doesn't align, model must be rebuilt from scratch → 12–14 week timeline dependency.
+
+Next Steps: CSM logging Success Architect case. CL logging 2 VOC tickets with product team.
+Stakeholders: DC Product Owner (Mahindra ADC), Digital Marketing Head.
+Timeline: 6–8 weeks, contingent on MSP cooperation.`,
+    ltAsk: '',
+    useCases: 'Data Management — Ingestion, Harmonization, Identity Resolution, C360 Unified Profile & Timeline.'
+  },
+  {
+    account: 'Air India Limited',
+    csm: 'Deepak Sharma',
+    segment: 'CMI-ATTH',
+    aov: '$494K (DC: $417K | AF: $77K)',
+    ccr: '—',
+    crr: '57%',
+    statuses: ['🟡 AF: Early Adoption', '🟢 DC: Healthy'],
+    rag: 'amber',
+    update: `AMBER — 3 Agentforce agents live in production (General FAQ + Baggage: May 26; Name Change: Apr 24). Data Cloud live for unified customer 360.
+
+Next Milestones:
+• AF: 18 non-voice use cases identified, scoping & prioritization underway with PS
+• DC: Proactive monitoring setup in progress. Databricks-to-DC migration feasibility under evaluation
+• Databricks Private Connect: Pilot nominated, pricing confirmation pending
+
+Blockers:
+• Champion Attrition: Key pro-SF contacts at Air India on notice/exiting
+• AF Flex Credits at 0% attribution despite 3 live agents (root causes identified)
+• DC Top 8 use cases not yet optimized
+
+Next QSR: July 14, 2026`,
+    ltAsk: `Fast-track PS engagement before key Air India resources transition.\nInternal account team review on Flex Credit attribution next week.\nDC Product Team to own optimization review and unblock Databricks migration.`,
+    useCases: '360° Customer View, Real-Time Tableau Dashboards, Agentforce Voice & Non-Voice (General FAQ, Baggage, Name Change).'
+  },
+  {
+    account: 'PVR INOX Ltd.',
+    csm: 'Ashwani Vatsa',
+    segment: 'TMT-HRE',
+    aov: '$474K (DC)',
+    ccr: '$58K',
+    crr: '59.88%',
+    statuses: ['🟢 AF: Healthy', '🟢 DC: Healthy'],
+    rag: 'green',
+    update: `DC consumption at 7% over past 45 days. At current run rate, projected to consume 60% of total DC credits.
+Full credit exhaustion expected once usage spikes from real-time data ingestion and real-time calculated insights for segment creation.
+
+Flex Credit Trial: Initial Flex Credits provided at $0 strictly for trial purposes.`,
+    ltAsk: '',
+    useCases: 'Ingestion, Harmonization, Identity Resolution, Unified Profile & Timeline, Scoring/NBA, Segmentation, Journey Orchestration, Tableau integrations.'
+  },
+  {
+    account: 'Tata Capital',
+    csm: 'Deepak Chawla',
+    segment: 'FINS',
+    aov: '$353K (DC)',
+    ccr: '$6.6K',
+    crr: '6.24%',
+    statuses: ['🔴 AF: Not Consuming', '🟡 DC: Early Adoption'],
+    rag: 'red',
+    update: `AMBER — AFD360 credits included in SELA Early Renewal (Sep '25) for quick POC. D360 use case was data archival but SF Core → D360 ingestion became free post-deal. No AF use cases defined at signing. Customer has competing priorities; some use cases (e.g. email classification) already implemented with EY/Azure at low cost.
+
+Action Items:
+• Art of Possible Workshop (AF use cases) | Mayur, Samreen, Deepak | Due: 5th July
+• Identify high-impact D360 use cases | Samreen, Mayur, Anirban C | Due: 5th July
+• Plan next archival objects | Deepak, Sanigdha | Due: 30th June
+• UPRA sign-off + big object archival (initial failed — 270M+ records, 6 long text area fields) | Due: 25th June`,
+    ltAsk: 'Need top-down approach for partnership & ensuring AFDC is a priority for Tata Capital. Start with use case agreement & POC.',
+    useCases: 'Data Archival — Control overage in main production org, archiving old data on Data Cloud.'
+  },
+  {
+    account: 'Bharti Airtel Limited',
+    csm: 'Sumit Sharma',
+    segment: 'TMT-HRE',
+    aov: '$271K (AF)',
+    ccr: '$969',
+    crr: '1.99%',
+    statuses: ['🔴 AF: Not Consuming', '🔴 DC: Not Consuming'],
+    rag: 'red',
+    update: `SOW signature in process, expected Week of Jul 1.
+First delivery drop in 8 weeks, second in 13 weeks. Consumption expected to pick up post implementation.
+
+Use Case: Agentforce Employee Agent (B2B) orchestrating Key Account Manager & Order-Entry personas with up to 9 sub-agents, 40 actions. Features include AI-powered PO extraction, feasibility checks, agent-assisted approval workflows.`,
+    ltAsk: '',
+    useCases: 'B2B Agent for KAM & OE personas — PO extraction, feasibility quoting, DOA/OV approvals, CAF/Proposal generation.'
+  },
+  {
+    account: 'Hero FinCorp Retail',
+    csm: 'Sourabh Suman',
+    segment: 'FINS',
+    aov: '$180K (AF: $172K | DC: $8K)',
+    ccr: '—',
+    crr: '4%',
+    statuses: ['🟡 AF: Early Adoption', '🟡 DC: Early Adoption'],
+    rag: 'amber',
+    update: `1. Optimization and fine tuning for IDP Extract | Owner: CSM | Ongoing
+2. Peak Season preparation for KEM 2026 to drive consumption significantly | Owner: CSM
+3. Explore more high-value loan disbursement use cases for Agentforce | Owner: CSM`,
+    ltAsk: '',
+    useCases: 'Service Agent, Sales Executive Workbench, Operations Workbench, Loan Disbursal Automation (MuleSoft IDP document extracts for validation).'
+  },
+  {
+    account: 'Tata Play',
+    csm: 'Liza Gogoi Marandi',
+    segment: 'TMT-HRE',
+    aov: '$0.39M',
+    ccr: '~$12K',
+    crr: '107% (over)',
+    statuses: ['🔴 AF: Not Consuming', '🔴 DC: At Risk of Overage'],
+    rag: 'red',
+    update: `RED — Customer worried about over-consumption by end of contract term.
+Next Milestone: Optimize credit usage from 6 lac/pm to 4 lac/pm.
+Blocker: Customer does not want to over-consume.
+Use cases live in production since Jan 2026.
+Krishna Manoja engaged on this account.`,
+    ltAsk: '',
+    useCases: 'Retention, Revenue optimization.'
+  },
+  {
+    account: 'Ola Electric Technologies',
+    csm: 'Prateek Singh',
+    segment: 'CMI-ATTH',
+    aov: '$132K (DC)',
+    ccr: '—',
+    crr: '78%',
+    statuses: ['🟢 AF: Not Applicable', '🔴 DC: At Risk of Overage'],
+    rag: 'red',
+    update: `1. Overage discussion with customer | Completed.
+2. Initiate DC Credit Upsell discussion | Owner: AE | Due: 30th July (delay due to contract restructuring in place).
+3. Explore more high-value Data 360 use cases | Owner: CSM | Due: 30th July.
+No current blockers/risks identified.`,
+    ltAsk: '',
+    useCases: 'Unified Data Ingestion, Real-Time Sales Intelligence.'
+  },
+  {
+    account: 'Manipal Academy of Higher Education',
+    csm: 'Rituja Rai',
+    segment: 'TMT-HRE',
+    aov: '$74.8K (AF)',
+    ccr: '$973',
+    crr: '35.63%',
+    statuses: ['🟢 AF: Healthy', '🟢 DC: Healthy'],
+    rag: 'green',
+    update: `5 use cases live in production — 3 for Faculty, 1 for Students, 1 for Institute Admin.
+1. Workshops per institute to train users & drive adoption | Owner: Aravindh, Aswin, Rituja | Due: 30th June
+2. Proposed Einstein Request SKU swap to Flex Credits | Owner: Aravindh | Due: 30th June
+3. Consumption expected to pick up post July 2026. Additional use cases to be identified with MAHE Core team | Due: 10th July`,
+    ltAsk: '',
+    useCases: 'Morning Coffee Dashboard, Attendance Mgmt Agent, Class Swap Agent, Student Assistant, Admin Assistance Agent.'
+  },
+  {
+    account: 'Aditya Birla Financial Shared Services',
+    csm: 'Smita Joshi',
+    segment: 'FINS',
+    aov: '$41.9K (AF)',
+    ccr: '$6.3K',
+    crr: '67.70%',
+    statuses: ['🟡 AF: Early Adoption', '🟡 DC: Consuming'],
+    rag: 'amber',
+    update: `AMBER — Go-live delayed due to deployment issues. Customer remediating with vendor.
+New Go-Live date: 2nd July for ABHI use case.
+
+Next: Success Guide engaged for discovery call. SA reviewing implementation for Prompt Optimization and new use case solutioning.
+Blockers: Deployment issues (go-live Jul 2 for ABHI). Business sign-off pending for ABCD use case — expected Jul 6.
+Weekly cadences in place with customer.`,
+    ltAsk: '',
+    useCases: 'Auto case creation on Escalation mail to CEO, Service Desk auto-case with intent/category classification, auto-response.'
+  },
+  {
+    account: 'TCS',
+    csm: 'Rituja Rai',
+    segment: 'TMT-HRE',
+    aov: '$41.8K',
+    ccr: '$19',
+    crr: '0%',
+    statuses: ['🔴 AF: Not Consuming', '🔴 DC: Not Consuming'],
+    rag: 'red',
+    update: `1. Working with TCS Business & COE Team to unblock scheduled MVP Go-Live | Owner: Rituja & Gagori | Due: 31st May
+2. Discovery workshops to identify & onboard more use cases prioritized by impact | Owner: Rituja, Shagird, Ram (PS) | Due: 30th June
+3. Ensure TCS Security compliance requirements are met for AgF use case onboarding | Owner: Gagori | Due: 12th June`,
+    ltAsk: '',
+    useCases: 'Meeting & Call Personalization, AI Agent for Sales Enablement, Deal Analysis, Close Plan, Opportunity Prioritization, Record Summary, Opportunity from Emails.'
+  },
+  {
+    account: 'L&T Finance Holdings Limited',
+    csm: 'Anil Pandey',
+    segment: 'FINS',
+    aov: '$44',
+    ccr: '0',
+    crr: '0%',
+    statuses: ['🔴 AF: Not Consuming', '🔴 DC: Not Consuming'],
+    rag: 'red',
+    update: `1. Leadership meeting 21st May — demo session alignment on priorities | Owner: Mayur, Samreen
+2. Demo + identify new DC use cases | Owner: Mayur, Anil Pandey | Due: 30th June
+3. Workshop to identify Agentforce use cases | Owner: Mayur, Samreen | Due: 30th June
+
+Note: Stalled POC due to high credit consumption risk and decline in accuracy for email handling use case.`,
+    ltAsk: '',
+    useCases: 'Automated inbound email handling (stalled PoC).'
+  },
+  {
+    account: 'Indigo',
+    csm: 'Sanigdha Bhutani',
+    segment: 'CMI-ATTH',
+    aov: '$7.6K (DC)',
+    ccr: '—',
+    crr: '14.40%',
+    statuses: ['🟢 AF: Not Applicable', '🟡 DC: Early Adoption'],
+    rag: 'amber',
+    update: `GREEN — 3 Agentforce use cases live as POC (IROPs, Waivers, Booking) implemented by PS. BRD discussions underway for remaining non-voice and BlueChip use cases. Renewal due August.
+
+Next Milestones:
+• Marketing Cloud UCG Go-Live: 20 templates activating. Workshops planned for incremental use cases.
+• Non-voice & BlueChip use cases: Planning in progress; some will leverage DC credits for unstructured data.
+• Renewal discussions ongoing — customer requesting reduced price given aviation industry impact.`,
+    ltAsk: '',
+    useCases: 'DC: WhatsApp High Priority Service Comms. AF: IROPs, Waivers, Booking, Einstein Case Classification.'
+  },
+  {
+    account: 'Genpact India Private Limited',
+    csm: 'Amit Purohit',
+    segment: 'CMI-ATTH',
+    aov: '$3.3K (DC)',
+    ccr: '$2',
+    crr: '8.14%',
+    statuses: ['🔴 AF: Not Consuming', '🔴 DC: Not Consuming'],
+    rag: 'red',
+    update: `Contract expired June 17, 2026. Limited consumption activity recorded.\nFurther updates pending from account team.`,
+    ltAsk: '',
+    useCases: 'D360 DSC.'
+  }
+];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ASEAN DATA
+// ═══════════════════════════════════════════════════════════════════════════
+const aseanAccounts = [
+  {
+    account: 'Bank of the Philippine Islands',
+    csm: 'Katherine Mace',
+    country: 'PH',
+    aov: '$1.8M',
+    ccr: '$19.4K',
+    crr: '5.86%',
+    cohort: 'Under Consuming',
+    rag: 'amber',
+    update: `06/29: Galaxy Phase 1 Technical Go-Live activities completed. Business Go-Live scheduled Jul 31 remains at risk due to one remaining BSP compliance requirement. BPI has accepted SF BAFO — finalizing language changes. Recent product fix caused data issues on BPI. Negative customer sentiment.
+
+After go-live: projection for Q2 CCR and tracking based on DC calculator.`,
+    ltAsk: `06/29: Help needed from DC Product team on the recent product fix that caused regression on BPI.\n06/16: Recontracting event with Galaxy — need LT help to get Deal Desk to approve carrying over remaining credits to new contract.`,
+    useCases: 'Galaxy DC — Asset & Liability, Loans, Risk & Performance Management Analytics.'
+  },
+  {
+    account: "L'Oréal Singapore Pte Ltd",
+    csm: 'Kevin Xie',
+    country: 'SG',
+    aov: '$563.7K',
+    ccr: '$0',
+    crr: '0%',
+    cohort: 'Under Consuming',
+    rag: 'amber',
+    update: `06/24: KJ Ng aligning WhatsApp business use cases with Verticurl team (since Jun 9).
+MC Hyper-personalisation discussion with L'Oréal SAPMENA business lead on 25 Jun — Cedric Pollin & KJ Ng.`,
+    ltAsk: '',
+    useCases: 'WhatsApp AI / Skin Diagnostics — AI recommendations pre-computed and stored in data extension. MCE surfaces the output.'
+  },
+  {
+    account: 'Singapore Life Ltd (Singlife)',
+    csm: 'Katherine Mace',
+    country: 'SG',
+    aov: '$472.2K',
+    ccr: '$5.9K',
+    crr: '96.69%',
+    cohort: 'Consuming Well',
+    rag: 'green',
+    update: `Consuming Well — DC credits consumed during document parsing at project start. Credits will continue to be consumed as future phases of GI / Buddy / Additional use cases begin ingesting more PDFs.`,
+    ltAsk: 'See Flex Credits line item.',
+    useCases: 'Document parsing, data ingestion for GI/Buddy use cases.'
+  },
+  {
+    account: 'M1 Limited',
+    csm: 'Stewart Hunter',
+    country: 'SG',
+    aov: '$431.1K',
+    ccr: '$0',
+    crr: '0.02%',
+    cohort: 'Under Consuming',
+    rag: 'red',
+    update: `05/28: Simba acquisition called off — attrition save plan being re-evaluated. Red account team (Gandharv Madaan) still engaged.
+Marko (CDO) confirmed fall-back plan to increase business simplicity and reduce cost-to-serve. Reframe Salesforce value within Keppel's 90-day plan.
+Next CEO connect: June 30.`,
+    ltAsk: `Arun to have virtual connect with Mann (M1 CEO) to discuss how SF can power M1's 90-day cost reduction plan. Date: 17th June.\nTotal required AOV for FY27 given by M1 — RFI initiated. Cost reduction response requested by July 31.\nConstruct response achieving cost reduction; review how Agentforce enables Cost to Serve. Date: 31st July.`,
+    useCases: 'No live use cases. Service team, customer service, billing summary, payment inquiries scoped.'
+  },
+  {
+    account: 'PLDT, Inc.',
+    csm: 'Katherine Mace',
+    country: 'PH',
+    aov: '$326.7K',
+    ccr: '$0',
+    crr: '0.05%',
+    cohort: 'Under Consuming',
+    rag: 'amber',
+    update: `06/29: Will need to align with Phem Jimenon on next steps. PLDT Global is a separate entity from PLDT Enterprise — coordination required.`,
+    ltAsk: '',
+    useCases: 'D360 to power Databricks reporting, billing inquiry screens in SF, M&A org merge, executive reporting.'
+  },
+  {
+    account: 'Canon Singapore Pte. Ltd.',
+    csm: 'TBC',
+    country: 'SG',
+    aov: '$229.8K',
+    ccr: '$0',
+    crr: '0%',
+    cohort: 'No CRR',
+    rag: 'red',
+    update: `05/28: This is planned attrition for Canon. No active consumption or use cases in pipeline.`,
+    ltAsk: '',
+    useCases: '—'
+  },
+  {
+    account: 'Prudential Services SG (HKK/VN)',
+    csm: 'Katherine Mace',
+    country: 'SG',
+    aov: '$191.4K',
+    ccr: '$0',
+    crr: '0%',
+    cohort: 'No CRR',
+    rag: 'amber',
+    update: `06/16: $200K Flex Credits sold Jan 2026 for 6 use cases at PVA and PHKL. Ideation and planning in progress. SE team built Heroku portal to host AF use cases for easy sharing across Prudential entities.
+PHKL: one use case (customer summary) going live end June (Deloitte).
+PVA: on hold, still being discussed with Pru team.`,
+    ltAsk: '',
+    useCases: 'License/credit account — 6 use cases across PVA and PHKL (customer summary, others TBD).'
+  },
+  {
+    account: 'Singapore Airlines Ltd',
+    csm: 'Seth Cheong',
+    country: 'SG',
+    aov: '$167K',
+    ccr: '$24.2K',
+    crr: '18.28%',
+    cohort: 'Under Consuming',
+    rag: 'red',
+    update: `06/23: 7 Agentforce use cases across 3 business units (CCSD, Customer Affairs, B2B Service) via FDE and ProServe under 500 SWE hours.
+• CCSD: Escalation, Next Best Action — Go-live: 03 July
+• B2B Service: Multi-Channel Summary, Case Disposition, Waiver Form — Case Dispo delayed to 9 Jul
+• Customer Affairs: Customer Record Enhancement, Proposed SR, Writeback Analysis
+
+Active Escalation since 1 Apr: 500 SWE hours insufficient to deliver all use cases.
+19 Jun: Nathan Ernest presented resourcing plan to Jude (VP, Application Service, SIA) — aligned. Nathan to oversee resourcing; Zahida Khader to coordinate execution to complete all 7 use cases by Aug 31.`,
+    ltAsk: `1. FDE resource needed for one month — Richard Koh has requested through Arun Kumar Parameswaran; needs conclusion ASAP.\n2. Gavin Barfield — awaiting SE resourcing for SIA.\n3. SWE for $450K raised by Ajith Moses to augment resourcing gap — pending approval.`,
+    useCases: 'CCSD: Escalation, NBA. CA: Customer Record Enhancement, Proposed SR, Writeback Analysis. B2B: Multi-Channel Summary, Case Disposition, Waiver Form.'
+  },
+  {
+    account: 'FairPrice Group (FPG)',
+    csm: 'Seth Cheong',
+    country: 'SG',
+    aov: '—',
+    ccr: '$0',
+    crr: '2.11%',
+    cohort: 'Under Consuming',
+    rag: 'amber',
+    update: `06/24: Customer indecision on Google vs Salesforce architecture — hinges on pending service RFP.
+
+AF 2-Way Messaging Pilot: Pilot deck prepared Jun 9 for Just Wine Club (JWC) and 99 LinkPoints via WhatsApp/Email. FPG to revert by 26 Jun on go/no-go.
+Vibe Coding Workshop (25 Jun): Invitations sent to build internal AF capability.
+D360 enablement: 7-session DC plan in progress. ECS planned July '26 for D360, MCA.
+
+Next Steps: PS estimated ~$100K for simplified 2-way WhatsApp integration for JWC agent. SE-led POC for CX of Tomorrow use case tentatively approved by Gavin Barfield. Hyperpersonalisation postponed indefinitely.`,
+    ltAsk: `1. SE leadership support for SE-led Agentforce POC. FPG wants AF agent launched alongside Google Agent for CX of Tomorrow.\n2. Funding to Deloitte/PS to deliver use cases end-to-end quickly.\n3. Dedicated Enterprise Architect(s) for architectural alignment with FPG on AF architecture including security.`,
+    useCases: 'Birthday LP boost, expiring LP nudge, CDC spend voucher, geo-fenced LP rewards, OBFS QR gamification, loyalty tier migration. Agentforce: 2-way WhatsApp, autonomous marketing agents.'
+  },
+  {
+    account: 'Prudential Assurance Singapore',
+    csm: 'Herve Delplanque',
+    country: 'SG',
+    aov: '$129.9K',
+    ccr: '$11.9K',
+    crr: '85.89%',
+    cohort: 'Consuming Well',
+    rag: 'green',
+    update: `07/02: Pruforce project and CRM Contact Center (deployed by Deloitte) will trigger extra DC usage — SE/CL input needed for quantification. Go-live dates TBD in Q3 2026.
+New DC use cases require custom usage tagging for granular tracking by use case, department, and charge-backs. Work in progress by PS CTO (Tapati Pandit).`,
+    ltAsk: 'N/A',
+    useCases: 'DC for CEP (Marketing Cloud) — ingestion from multiple sources, refined segmentation, fatigue management, opt-in/out management, high-touch customer identification.'
+  },
+  {
+    account: 'Prudential BSN Takaful Berhad',
+    csm: 'Herve Delplanque',
+    country: 'MY',
+    aov: '$123.2K',
+    ccr: '$2.4K',
+    crr: '1.10%',
+    cohort: 'Under Consuming',
+    rag: 'amber',
+    update: `07/02: Agentforce for Telesales is live (since 25 May). Credit consumption stopped Jun 3 — investigation in progress.
+AI workshop completed. Follow-up meeting next week on SDR Agent with NBA and call script planning.`,
+    ltAsk: `Lesson learned: Engage AIWG systematically for other AI use cases at Prudential — structured walkthrough of solution, security posture, compliance responses, and AF operating model to reduce back-and-forth.`,
+    useCases: 'AF Telesales: website chatbot providing product info and handing over leads to PBTB sales.'
+  },
+  {
+    account: 'Pru Life Insurance Corp UK',
+    csm: 'Herve Delplanque',
+    country: 'PH',
+    aov: '$54.1K',
+    ccr: '$1.8K',
+    crr: '45.01%',
+    cohort: 'Consuming',
+    rag: 'green',
+    update: `07/02: Pruforce project and CRM Contact Center will trigger extra DC usage — quantification input needed from SE/CL. Pruforce Go-live date TBD Q3 2026.
+DC usage custom tagging work in progress by PS CTO (Tapati Pandit) for granular tracking.`,
+    ltAsk: '',
+    useCases: 'DC for CEP (Marketing Cloud) — multi-source ingestion, segmentation, fatigue management, opt-in/out management.'
+  },
+  {
+    account: 'Prudential Assurance Malaysia Berhad',
+    csm: 'Herve Delplanque',
+    country: 'MY',
+    aov: '$107.7K',
+    ccr: '$14.6K',
+    crr: '40.84%',
+    cohort: 'Consuming',
+    rag: 'green',
+    update: `07/02: Pruforce project and CRM Contact Center will trigger extra DC usage — SE/CL input needed for quantification. Go-live TBD Q3 2026.
+DC usage custom tagging work in progress by PS CTO (Tapati Pandit).`,
+    ltAsk: '',
+    useCases: 'DC for CEP (Marketing Cloud) — multi-source ingestion, segmentation, fatigue management, opt-in/out management.'
+  },
+  {
+    account: 'Prudential Hong Kong Limited',
+    csm: 'Herve Delplanque',
+    country: 'HK',
+    aov: '$57.8K',
+    ccr: '$3.8K',
+    crr: '25.02%',
+    cohort: 'Consuming',
+    rag: 'green',
+    update: `07/02: CRM Contact Center launched by Deloitte in June 2026. Pruforce go-live TBD Q3 2026. Both will trigger extra DC usage — quantification pending.
+DC usage custom tagging in progress for granular tracking.`,
+    ltAsk: '',
+    useCases: 'DC for CEP (Marketing Cloud) — multi-source ingestion, segmentation, fatigue management.'
+  },
+  {
+    account: 'Prudential Life Assurance Thailand',
+    csm: 'Herve Delplanque',
+    country: 'TH',
+    aov: '$69.8K',
+    ccr: 'n/a',
+    crr: 'n/a',
+    cohort: 'No CRR',
+    rag: 'amber',
+    update: `07/02: Agentforce: 3 use cases implemented (customer summary, case classification, case summary) by SE team. AIWG and UAT validation in progress.
+Data Cloud: PoC purpose only. Very small allowance sold (41K credits vs 100–400M for other LBUs). Credits expire Aug 16, 2026.`,
+    ltAsk: '',
+    useCases: 'AF: Customer Summary, Case Classification, Case Summary (minimal/experimental). DC: PoC only, 41K credits.'
+  },
+  {
+    account: 'Prudential Vietnam Assurance',
+    csm: 'Herve Delplanque',
+    country: 'VN',
+    aov: '$69.8K',
+    ccr: '$11.2K',
+    crr: '48.10%',
+    cohort: 'Consuming',
+    rag: 'green',
+    update: `07/02: Pruforce project and CRM Contact Center (launched by Deloitte Jun 2026) will trigger extra DC usage. Pruforce go-live TBD Q3 2026.
+DC usage custom tagging in progress (PS CTO Tapati Pandit).`,
+    ltAsk: 'Local language-speaking TA for Vietnam workshop and help building use cases in sandbox.',
+    useCases: 'DC for CEP (Marketing Cloud) — multi-source ingestion, segmentation, fatigue management, opt-in/out management.'
+  },
+  {
+    account: 'Manila Electric Company (Meralco)',
+    csm: 'Kristinne Balico',
+    country: 'PH',
+    aov: '$107.9K',
+    ccr: '$0',
+    crr: '21.76%',
+    cohort: 'Under Consuming',
+    rag: 'amber',
+    update: `06/29: Ongoing AF POC. Use cases shared. Discussions around governance and testing strategy in progress.
+Gap: Lack of visibility on POC success criteria and timeline.
+Action: Raise to Meralco Steerco in next QBR.
+Next Step: Schedule QBR | Owner: Masherry Alilam`,
+    ltAsk: '',
+    useCases: 'Customer-facing Service Agent for account management (bill & payment inquiries), logging delivery issues (power outage).'
+  },
+  {
+    account: 'Banyan Tree Singapore Pte Ltd',
+    csm: 'Stewart Hunter',
+    country: 'SG',
+    aov: '$96.9K',
+    ccr: '$153.8K',
+    crr: '169%',
+    cohort: 'Consuming',
+    rag: 'amber',
+    update: `06/17: Data360 live, revised implementation ongoing. Real-time process deployed May 27. Full historical data on Data360 by end of June. Additional hotels onboarded.
+Optimize current D360 data transform usage — 2nd session Jun 18 (Richard Chambers & SI).
+Use case ideation workshop with customer to identify additional use cases will happen post D360 optimization. Target: w/c 13th July.`,
+    ltAsk: 'Assign an SE to be present at the DC workshop to enable creation of additional use cases for Hospitality Industry. Target: 14 July.',
+    useCases: 'Unified guest profile across multi-brand properties — affinity model, customer marketing journey, booking optimisation.'
+  }
+];
+
+// ── Summary table helpers ────────────────────────────────────────────────────
+function ragBadge(r) {
+  const map = { green: 'tbl-tag-green', amber: 'tbl-tag-amber', red: 'tbl-tag-red', gray: 'tbl-tag-gray' };
+  const label = { green: '🟢 Green', amber: '🟡 Amber', red: '🔴 Red', gray: '⚪ N/A' };
+  return `<span class="tbl-tag ${map[r]||'tbl-tag-gray'}">${label[r]||r}</span>`;
+}
+function statusBadge(s) {
+  if (!s) return '<span class="tbl-tag tbl-tag-gray">—</span>';
+  const cl = s.includes('🟢') ? 'tbl-tag-green' : s.includes('🟡') ? 'tbl-tag-amber' : s.includes('🔴') ? 'tbl-tag-red' : 'tbl-tag-gray';
+  // strip emoji prefix for brevity
+  const label = s.replace(/^[🟢🟡🔴]\s*/u,'').replace(/^(AF|DC):\s*/,'');
+  return `<span class="tbl-tag ${cl}" title="${esc(s)}">${esc(label)}</span>`;
+}
+function cohortBadge(c) {
+  if (!c) return '<span class="tbl-tag tbl-tag-gray">—</span>';
+  const cl = c.includes('Well') ? 'tbl-tag-green' : c.includes('Under') ? 'tbl-tag-amber' : c.includes('No CRR') ? 'tbl-tag-gray' : c.includes('risk') || c.includes('attrition') ? 'tbl-tag-red' : 'tbl-tag-green';
+  return `<span class="tbl-tag ${cl}">${esc(c)}</span>`;
+}
+function ltBadge(ltAsk) {
+  if (!ltAsk || !ltAsk.trim() || ltAsk.trim().toLowerCase() === 'n/a') return '—';
+  return '<span class="lt-flag">⚡ Yes</span>';
+}
+function snippet(text) {
+  const t = (text||'').replace(/\n/g,' ').replace(/\s+/g,' ').trim();
+  return `<div class="snippet"><div class="snippet-inner">${esc(t)}</div></div>`;
+}
+
+function renderIndiaSummary(accounts, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = accounts.map((a, i) => {
+    const afStatus = a.statuses ? a.statuses.find(s => s.includes('AF')) || '' : '';
+    const dcStatus = a.statuses ? a.statuses.find(s => s.includes('DC')) || '' : '';
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px;">${i+1}</td>
+      <td class="account-name"><span class="rag-dot rag-${a.rag||'gray'}"></span>${esc(a.account)}</td>
+      <td><span class="tbl-tag tbl-tag-csm">${esc(a.csm||'—')}</span></td>
+      <td><span class="tbl-tag tbl-tag-seg">${esc(a.segment||'—')}</span></td>
+      <td class="num">${esc(a.aov||'—')}</td>
+      <td class="num">${esc(a.ccr||'—')}</td>
+      <td class="num">${esc(a.crr||'—')}</td>
+      <td>${statusBadge(afStatus)}</td>
+      <td>${statusBadge(dcStatus)}</td>
+      <td>${ragBadge(a.rag||'gray')}</td>
+      <td>${ltBadge(a.ltAsk)}</td>
+      <td>${snippet(a.update)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAseanSummary(accounts, tbodyId) {
+  const tbody = document.getElementById(tbodyId);
+  tbody.innerHTML = accounts.map((a, i) => {
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px;">${i+1}</td>
+      <td class="account-name"><span class="rag-dot rag-${a.rag||'gray'}"></span>${esc(a.account)}</td>
+      <td><span class="tbl-tag tbl-tag-csm">${esc(a.csm||'—')}</span></td>
+      <td><span class="tbl-tag tbl-tag-country">${esc(a.country||'—')}</span></td>
+      <td class="num">${esc(a.aov||'—')}</td>
+      <td class="num">${esc(a.ccr||'—')}</td>
+      <td class="num">${esc(a.crr||'—')}</td>
+      <td>${cohortBadge(a.cohort)}</td>
+      <td>${ragBadge(a.rag||'gray')}</td>
+      <td>${ltBadge(a.ltAsk)}</td>
+      <td>${snippet(a.update)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render(accounts, containerId) {
+  document.getElementById(containerId).innerHTML = accounts.map(a => buildCard(a)).join('');
+}
+renderIndiaSummary(indiaAccounts, 'india-summary-tbody');
+renderAseanSummary(aseanAccounts, 'asean-summary-tbody');
+render(indiaAccounts, 'india-grid');
+render(aseanAccounts, 'asean-grid');
+</script>
+</body>
+</html>
